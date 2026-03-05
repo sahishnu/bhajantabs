@@ -36,11 +36,8 @@ try {
 const adminUsername = process.env.ADMIN_USERNAME;
 const adminPassword = process.env.ADMIN_PASSWORD;
 if (adminUsername && adminPassword) {
-  const existing = db.prepare('SELECT id FROM users WHERE username = ?').get(adminUsername);
-  if (!existing) {
-    const hash = bcrypt.hashSync(adminPassword, 10);
-    db.prepare('INSERT INTO users (username, password_hash, is_admin) VALUES (?, ?, 1)').run(adminUsername, hash);
-  }
+  const hash = bcrypt.hashSync(adminPassword, 10);
+  db.prepare('INSERT OR IGNORE INTO users (username, password_hash, is_admin) VALUES (?, ?, 1)').run(adminUsername, hash);
 }
 
 export default db;
