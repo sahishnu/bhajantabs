@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import path from 'node:path';
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { writeFileSync } from 'node:fs';
 import db from '@/lib/db';
 import { getAuthUser } from '@/lib/auth';
+import { UPLOADS_DIR } from '@/lib/paths';
 
 interface Song {
   id: number;
@@ -12,11 +13,6 @@ interface Song {
   user_id: number;
   created_at: string;
   updated_at: string;
-}
-
-const uploadsDir = path.join(process.cwd(), 'uploads');
-if (!existsSync(uploadsDir)) {
-  mkdirSync(uploadsDir, { recursive: true });
 }
 
 export async function GET() {
@@ -57,7 +53,7 @@ export async function POST(req: NextRequest) {
     }
     mp3_filename = `${Date.now()}-${Math.round(Math.random() * 1e9)}.mp3`;
     const buffer = Buffer.from(await mp3.arrayBuffer());
-    writeFileSync(path.join(uploadsDir, mp3_filename), buffer);
+    writeFileSync(path.join(UPLOADS_DIR, mp3_filename), buffer);
   }
 
   const result = db

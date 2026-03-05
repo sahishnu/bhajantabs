@@ -3,6 +3,7 @@ import path from 'node:path';
 import { existsSync, unlinkSync, writeFileSync } from 'node:fs';
 import db from '@/lib/db';
 import { getAuthUser } from '@/lib/auth';
+import { UPLOADS_DIR } from '@/lib/paths';
 
 interface Song {
   id: number;
@@ -13,8 +14,6 @@ interface Song {
   created_at: string;
   updated_at: string;
 }
-
-const uploadsDir = path.join(process.cwd(), 'uploads');
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = await getAuthUser();
@@ -59,12 +58,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: 'File too large. Maximum size is 10MB' }, { status: 400 });
     }
     if (song.mp3_filename) {
-      const oldPath = path.join(uploadsDir, song.mp3_filename);
+      const oldPath = path.join(UPLOADS_DIR, song.mp3_filename);
       if (existsSync(oldPath)) unlinkSync(oldPath);
     }
     mp3_filename = `${Date.now()}-${Math.round(Math.random() * 1e9)}.mp3`;
     const buffer = Buffer.from(await mp3.arrayBuffer());
-    writeFileSync(path.join(uploadsDir, mp3_filename), buffer);
+    writeFileSync(path.join(UPLOADS_DIR, mp3_filename), buffer);
   }
 
   db.prepare('UPDATE songs SET title = ?, lyrics = ?, mp3_filename = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(
@@ -94,7 +93,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   }
 
   if (song.mp3_filename) {
-    const filePath = path.join(uploadsDir, song.mp3_filename);
+    const filePath = path.join(UPLOADS_DIR, song.mp3_filename);
     if (existsSync(filePath)) unlinkSync(filePath);
   }
 

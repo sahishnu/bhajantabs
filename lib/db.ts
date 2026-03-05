@@ -1,9 +1,7 @@
 import Database from 'better-sqlite3';
-import path from 'node:path';
+import { DB_PATH } from './paths';
 
-const dbPath = path.join(process.cwd(), 'bhajantabs.db');
-
-const db = new Database(dbPath);
+const db = new Database(DB_PATH);
 
 db.pragma('journal_mode = WAL');
 
