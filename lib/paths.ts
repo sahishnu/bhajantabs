@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { existsSync, mkdirSync } from 'node:fs';
 
-const dataDir = process.env.NODE_ENV === 'production' ? '/data' : process.cwd();
+const dataDir = process.env.DATA_DIR || process.cwd();
 
 export const DB_PATH = path.join(dataDir, 'bhajantabs.db');
 
