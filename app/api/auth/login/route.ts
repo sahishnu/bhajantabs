@@ -10,8 +10,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Username and password are required' }, { status: 400 });
   }
 
-  const user = db.prepare('SELECT id, username, password_hash FROM users WHERE username = ?').get(username) as
-    | { id: number; username: string; password_hash: string }
+  const user = db.prepare('SELECT id, username, password_hash, is_admin FROM users WHERE username = ?').get(username) as
+    | { id: number; username: string; password_hash: string; is_admin: number }
     | undefined;
 
   if (!user || !bcrypt.compareSync(password, user.password_hash)) {
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   }
 
   const token = signToken(user.id);
-  const response = NextResponse.json({ user: { id: user.id, username: user.username } });
+  const response = NextResponse.json({ user: { id: user.id, username: user.username, is_admin: !!user.is_admin } });
   response.cookies.set('token', token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',

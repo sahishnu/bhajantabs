@@ -5,13 +5,13 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 interface User {
   id: number;
   username: string;
+  is_admin: boolean;
 }
 
 interface AuthContextValue {
   user: User | null;
   loading: boolean;
   login: (username: string, password: string) => Promise<void>;
-  register: (username: string, password: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -46,28 +46,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(data.user);
   }, []);
 
-  const register = useCallback(async (username: string, password: string) => {
-    const res = await fetch('/api/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
-    });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({ error: 'Registration failed' }));
-      throw new Error(body.error || 'Registration failed');
-    }
-    const data = await res.json();
-    setUser(data.user);
-  }, []);
-
   const logout = useCallback(async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
     setUser(null);
   }, []);
 
   const value = useMemo(
-    () => ({ user, loading, login, register, logout }),
-    [user, loading, login, register, logout]
+    () => ({ user, loading, login, logout }),
+    [user, loading, login, logout]
   );
 
   return (

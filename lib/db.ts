@@ -1,4 +1,5 @@
 import Database from 'better-sqlite3';
+import bcrypt from 'bcryptjs';
 import { DB_PATH } from './paths';
 
 const db = new Database(DB_PATH);
@@ -10,6 +11,7 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
+    is_admin INTEGER NOT NULL DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
   CREATE TABLE IF NOT EXISTS songs (
@@ -23,5 +25,21 @@ db.exec(`
     FOREIGN KEY (user_id) REFERENCES users(id)
   );
 `);
+
+try {
+  db.exec('ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0');
+} catch {
+  // column already exists
+}
+
+const adminUsername = process.env.ADMIN_USERNAME;
+const adminPassword = process.env.ADMIN_PASSWORD;
+if (adminUsername && adminPassword) {
+  const existing = db.prepare('SELECT id FROM users WHERE username = ?').get(adminUsername);
+  if (!existing) {
+    const hash = bcrypt.hashSync(adminPassword, 10);
+    db.prepare('INSERT INTO users (username, password_hash, is_admin) VALUES (?, ?, 1)').run(adminUsername, hash);
+  }
+}
 
 export default db;

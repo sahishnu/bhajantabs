@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Music, Plus, LogOut, LogIn } from 'lucide-react';
+import { Music, Plus, LogOut, LogIn, Shield } from 'lucide-react';
 import { useAuth } from './AuthContext';
 
 export default function Navbar() {
@@ -18,6 +18,15 @@ export default function Navbar() {
         <div className="flex items-center gap-4">
           {user ? (
             <>
+              {user.is_admin && (
+                <Link
+                  href="/admin"
+                  className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-temple-red hover:text-temple-red/80 transition-colors"
+                >
+                  <Shield className="h-4 w-4" />
+                  Admin
+                </Link>
+              )}
               <Link
                 href="/songs/new"
                 className="flex items-center gap-1.5 rounded-md bg-saffron text-white px-3 py-1.5 text-sm font-medium hover:bg-saffron-light transition-colors"
