@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import path from 'node:path';
 import { existsSync, unlinkSync, writeFileSync } from 'node:fs';
-import db from '@/lib/db';
+import { query } from '@/lib/db';
 import { getAuthUser } from '@/lib/auth';
 import { UPLOADS_DIR } from '@/lib/paths';
 
@@ -22,11 +22,11 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   const { id } = await params;
-  const song = db.prepare('SELECT * FROM songs WHERE id = ?').get(id) as Song | undefined;
-  if (!song) {
+  const { rows } = await query('SELECT * FROM songs WHERE id = $1', [id]);
+  if (rows.length === 0) {
     return NextResponse.json({ error: 'Song not found' }, { status: 404 });
   }
-  return NextResponse.json(song);
+  return NextResponse.json(rows[0]);
 }
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -36,10 +36,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 
   const { id } = await params;
-  const song = db.prepare('SELECT * FROM songs WHERE id = ?').get(id) as Song | undefined;
-  if (!song) {
+  const { rows: songRows } = await query('SELECT * FROM songs WHERE id = $1', [id]);
+  if (songRows.length === 0) {
     return NextResponse.json({ error: 'Song not found' }, { status: 404 });
   }
+  const song = songRows[0] as Song;
   if (song.user_id !== user.id) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
@@ -66,15 +67,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     writeFileSync(path.join(UPLOADS_DIR, mp3_filename), buffer);
   }
 
-  db.prepare('UPDATE songs SET title = ?, lyrics = ?, mp3_filename = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(
-    title,
-    lyrics,
-    mp3_filename,
-    song.id,
+  const { rows: updated } = await query(
+    'UPDATE songs SET title = $1, lyrics = $2, mp3_filename = $3, updated_at = NOW() WHERE id = $4 RETURNING *',
+    [title, lyrics, mp3_filename, song.id]
   );
 
-  const updated = db.prepare('SELECT * FROM songs WHERE id = ?').get(song.id) as Song;
-  return NextResponse.json(updated);
+  return NextResponse.json(updated[0]);
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -84,10 +82,11 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   }
 
   const { id } = await params;
-  const song = db.prepare('SELECT * FROM songs WHERE id = ?').get(id) as Song | undefined;
-  if (!song) {
+  const { rows } = await query('SELECT * FROM songs WHERE id = $1', [id]);
+  if (rows.length === 0) {
     return NextResponse.json({ error: 'Song not found' }, { status: 404 });
   }
+  const song = rows[0] as Song;
   if (song.user_id !== user.id) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
@@ -97,6 +96,6 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     if (existsSync(filePath)) unlinkSync(filePath);
   }
 
-  db.prepare('DELETE FROM songs WHERE id = ?').run(song.id);
+  await query('DELETE FROM songs WHERE id = $1', [song.id]);
   return new NextResponse(null, { status: 204 });
 }

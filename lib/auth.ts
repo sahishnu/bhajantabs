@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';
-import db from './db';
+import { query } from './db';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'bhajantabs-dev-secret';
 
@@ -24,10 +24,7 @@ export async function getAuthUser(): Promise<{ id: number; username: string; is_
   const payload = verifyToken(token);
   if (!payload) return null;
 
-  const row = db.prepare('SELECT id, username, is_admin FROM users WHERE id = ?').get(payload.userId) as
-    | { id: number; username: string; is_admin: number }
-    | undefined;
-
-  if (!row) return null;
-  return { id: row.id, username: row.username, is_admin: !!row.is_admin };
+  const { rows } = await query('SELECT id, username, is_admin FROM users WHERE id = $1', [payload.userId]);
+  if (rows.length === 0) return null;
+  return { id: rows[0].id, username: rows[0].username, is_admin: rows[0].is_admin };
 }

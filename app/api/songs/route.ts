@@ -1,19 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import path from 'node:path';
 import { writeFileSync } from 'node:fs';
-import db from '@/lib/db';
+import { query } from '@/lib/db';
 import { getAuthUser } from '@/lib/auth';
 import { UPLOADS_DIR } from '@/lib/paths';
-
-interface Song {
-  id: number;
-  title: string;
-  lyrics: string;
-  mp3_filename: string | null;
-  user_id: number;
-  created_at: string;
-  updated_at: string;
-}
 
 export async function GET() {
   const user = await getAuthUser();
@@ -21,8 +11,8 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const songs = db.prepare('SELECT * FROM songs ORDER BY updated_at DESC').all() as Song[];
-  return NextResponse.json(songs);
+  const { rows } = await query('SELECT * FROM songs ORDER BY updated_at DESC');
+  return NextResponse.json(rows);
 }
 
 export async function POST(req: NextRequest) {
@@ -56,10 +46,10 @@ export async function POST(req: NextRequest) {
     writeFileSync(path.join(UPLOADS_DIR, mp3_filename), buffer);
   }
 
-  const result = db
-    .prepare('INSERT INTO songs (title, lyrics, mp3_filename, user_id) VALUES (?, ?, ?, ?)')
-    .run(title.trim(), lyrics.trim(), mp3_filename, user.id);
+  const { rows } = await query(
+    'INSERT INTO songs (title, lyrics, mp3_filename, user_id) VALUES ($1, $2, $3, $4) RETURNING *',
+    [title.trim(), lyrics.trim(), mp3_filename, user.id]
+  );
 
-  const song = db.prepare('SELECT * FROM songs WHERE id = ?').get(result.lastInsertRowid) as Song;
-  return NextResponse.json(song, { status: 201 });
+  return NextResponse.json(rows[0], { status: 201 });
 }
